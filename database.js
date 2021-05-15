@@ -1,12 +1,18 @@
-const Mongoose = require("mongoose");
+const { Sequelize } = require("sequelize");
+const db = new Sequelize("User", "postgres", "Shiva@123", {
+  host: "localhost",
+  dialect: "postgres",
 
-//load database
-Mongoose.connect("mongodb://localhost/hapijs-restapi");
-var db = Mongoose.connection;
-
-db.on("error", console.error.bind(console, "connection error"));
-db.once("open", function callback() {
-  console.log("Connection with database succeeded.");
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
 });
 
-exports.db = db;
+db.authenticate()
+  .then(() => console.log("database is connected."))
+  .catch((err) => console.log(err));
+
+module.exports = { db };
