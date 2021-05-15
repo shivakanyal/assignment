@@ -14,7 +14,7 @@ module.exports = [
   {
     method: "POST",
     path: "/user",
-    config: { auth: "jwt" },
+    config: { auth: false },
     handler: user.addUser,
   },
   {

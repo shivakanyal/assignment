@@ -2,6 +2,8 @@ const User = require("./model");
 const db = require("./database");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const secret = require("./config");
+const { createToken } = require("./utils/createToken");
 
 exports.getAllusers = async (req, res) => {
   try {
@@ -26,13 +28,18 @@ exports.addUser = async (req, res) => {
       return res.response({ msg: "user is already present" }).code(422);
     }
     const hashedPw = await bcrypt.hash(password, 12);
+
     const NewUser = await User.create({
       name: name,
       email: email,
       password: hashedPw,
     });
+
     console.log("NewUser:", NewUser);
-    return res.response(NewUser).code(201);
+    const token = createToken(NewUser.id, NewUser.email, NewUser.name);
+    return res
+      .response({ name: NewUser.name, email: NewUser.email, token })
+      .code(201);
   } catch (err) {
     console.log(err);
     return res.response({ message: err.msg }).code(500);
@@ -60,15 +67,7 @@ exports.login = async (req, res) => {
         .code(422);
     }
 
-    const token = jwt.sign(
-      {
-        email: loadedUser.email,
-        name: loadedUser.name,
-        userId: loadedUser.id,
-      },
-      "someLongSecret",
-      { algorithm: "HS256", expiresIn: "1h" }
-    );
+    const token = createToken(loadedUser.email, loadedUser.name, loadedUser.id);
 
     return res.response({ token: token, userId: loadedUser.id });
   } catch (err) {
@@ -81,13 +80,13 @@ exports.updateUser = async (req, res) => {
   try {
     const id = req.params._id;
     const user = await User.findOne({ where: { id: id } });
-    // console.log("user", user);
     if (!user) {
       return res.response({ msg: "user is not found" }).code(400);
     }
     if (req.user.userId !== user.id) {
       return res.response({ msg: "Not authorized!" }).code(422);
     }
+
     const newData = {
       name: req.payload.name,
       email: req.payload.email,
